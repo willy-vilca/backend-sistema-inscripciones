@@ -9,10 +9,13 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
@@ -74,9 +77,10 @@ public class PagoBancarioService {
         validarArchivo(archivo);
 
         int filasLeidas = 0;
-        int importados = 0;
         int duplicados = 0;
         int omitidos = 0;
+        List<PagoBancario> pagosCandidatos = new ArrayList<>();
+        Set<String> movimientosArchivo = new HashSet<>();
 
         try (InputStream inputStream = archivo.getInputStream();
                 Workbook workbook = WorkbookFactory.create(inputStream)) {
@@ -100,7 +104,7 @@ public class PagoBancarioService {
                     continue;
                 }
 
-                if (pagoBancarioRepository.existsByNroMovimiento(nroMovimiento)) {
+                if (!movimientosArchivo.add(nroMovimiento)) {
                     duplicados++;
                     continue;
                 }
@@ -121,14 +125,25 @@ public class PagoBancarioService {
                         .usado(false)
                         .build();
 
-                pagoBancarioRepository.save(pago);
-                importados++;
+                pagosCandidatos.add(pago);
             }
+
+            Set<String> movimientosExistentes = pagoBancarioRepository.findByNroMovimientoIn(movimientosArchivo)
+                    .stream()
+                    .map(PagoBancario::getNroMovimiento)
+                    .collect(java.util.stream.Collectors.toSet());
+
+            List<PagoBancario> pagosNuevos = pagosCandidatos.stream()
+                    .filter(pago -> !movimientosExistentes.contains(pago.getNroMovimiento()))
+                    .toList();
+
+            duplicados += pagosCandidatos.size() - pagosNuevos.size();
+            pagoBancarioRepository.saveAll(pagosNuevos);
 
             return new PagoImportacionResponse(
                     archivo.getOriginalFilename(),
                     filasLeidas,
-                    importados,
+                    pagosNuevos.size(),
                     duplicados,
                     omitidos);
         } catch (IOException ex) {

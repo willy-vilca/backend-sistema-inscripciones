@@ -1,5 +1,6 @@
 package com.universidad.inscripciones.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,6 +13,8 @@ public interface PagoBancarioRepository extends JpaRepository<PagoBancario, Long
     boolean existsByNroMovimiento(String nroMovimiento);
 
     Optional<PagoBancario> findByNroMovimiento(String nroMovimiento);
+
+    List<PagoBancario> findByNroMovimientoIn(Collection<String> numerosMovimiento);
 
     List<PagoBancario> findTop100ByOrderByCreadoEnDesc();
 
