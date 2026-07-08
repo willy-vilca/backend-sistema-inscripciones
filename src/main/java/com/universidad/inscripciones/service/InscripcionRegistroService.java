@@ -46,6 +46,7 @@ public class InscripcionRegistroService {
     private final EscuelaProfesionalRepository escuelaProfesionalRepository;
     private final ProgramaAcademicoRepository programaAcademicoRepository;
     private final FileStorageService fileStorageService;
+    private final CarnePdfService carnePdfService;
 
     @Transactional
     public InscripcionRegistroResponse registrar(
@@ -115,10 +116,15 @@ public class InscripcionRegistroService {
         pago.setUsadoEn(LocalDateTime.now());
         pagoBancarioRepository.save(pago);
 
+        String carnePath = carnePdfService.generarCarne(inscripcion);
+        inscripcion.setCarnePdfPath(carnePath);
+        inscripcionRepository.save(inscripcion);
+
         return new InscripcionRegistroResponse(
                 inscripcion.getId(),
                 codigoPostulante,
-                "Inscripcion registrada correctamente.");
+                "Inscripcion registrada correctamente.",
+                "/public/inscripcion/" + inscripcion.getId() + "/carne");
     }
 
     private void validarSolicitud(InscripcionRegistroRequest request, MultipartFile foto) {
