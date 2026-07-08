@@ -7,6 +7,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.universidad.inscripciones.dto.admin.AdminUserResponse;
+import com.universidad.inscripciones.model.enums.RolAdmin;
 import com.universidad.inscripciones.service.AdminUserService;
 
 import jakarta.servlet.FilterChain;
@@ -37,7 +39,13 @@ public class AdminAuthFilter extends OncePerRequestFilter {
 
         String token = extractToken(request.getHeader(HttpHeaders.AUTHORIZATION));
         try {
-            adminUserService.me(token);
+            AdminUserResponse user = adminUserService.me(token);
+            if (path.startsWith("/api/admin/usuarios") && user.rol() != RolAdmin.ADMIN) {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"message\":\"No tienes permiso para gestionar usuarios.\"}");
+                return;
+            }
             filterChain.doFilter(request, response);
         } catch (IllegalArgumentException ex) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

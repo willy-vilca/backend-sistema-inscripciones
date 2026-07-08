@@ -45,6 +45,10 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedAdmin() {
+        adminUserRepository.migrarRolSuperAdminAAdmin();
+        adminUserRepository.eliminarRestriccionRolAnterior();
+        adminUserRepository.crearRestriccionRolActual();
+
         if (adminUserRepository.existsByUsername("admin")) {
             return;
         }
@@ -54,7 +58,7 @@ public class DataInitializer implements CommandLineRunner {
                 .username("admin")
                 .email("admin@sistema.local")
                 .passwordHash(passwordEncoder.encode("admin123"))
-                .rol(RolAdmin.SUPER_ADMIN)
+                .rol(RolAdmin.ADMIN)
                 .activo(true)
                 .build();
 
