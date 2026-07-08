@@ -1,8 +1,13 @@
 package com.universidad.inscripciones.repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.universidad.inscripciones.model.entity.Inscripcion;
 import com.universidad.inscripciones.model.enums.EstadoInscripcion;
@@ -14,9 +19,48 @@ public interface InscripcionRepository extends JpaRepository<Inscripcion, Long> 
 
     boolean existsByCodigoPostulante(String codigoPostulante);
 
+    long countByEstado(EstadoInscripcion estado);
+
+    long countByFechaRegistroBetween(LocalDateTime inicio, LocalDateTime fin);
+
     boolean existsByPostulanteTipoDocumentoAndPostulanteNumeroDocumentoAndProcesoAdmisionIdAndEstadoNot(
             TipoDocumento tipoDocumento,
             String numeroDocumento,
             Long procesoAdmisionId,
             EstadoInscripcion estado);
+
+    @Query("""
+            select i
+            from Inscripcion i
+            join fetch i.postulante p
+            join fetch i.procesoAdmision pr
+            join fetch i.modalidadAdmision m
+            join fetch i.pagoBancario pago
+            left join fetch i.areaAcademica area
+            left join fetch i.escuelaProfesional escuela
+            left join fetch i.programaAcademico programa
+            where (:buscar is null
+                or lower(i.codigoPostulante) like lower(concat('%', :buscar, '%'))
+                or lower(p.numeroDocumento) like lower(concat('%', :buscar, '%'))
+                or lower(p.nombres) like lower(concat('%', :buscar, '%'))
+                or lower(p.apellidoPaterno) like lower(concat('%', :buscar, '%'))
+                or lower(coalesce(p.apellidoMaterno, '')) like lower(concat('%', :buscar, '%')))
+            order by i.fechaRegistro desc
+            """)
+    List<Inscripcion> buscarParaAdmin(@Param("buscar") String buscar, Pageable pageable);
+
+    @Query("""
+            select distinct i
+            from Inscripcion i
+            join fetch i.postulante p
+            join fetch i.procesoAdmision pr
+            join fetch i.modalidadAdmision m
+            join fetch i.pagoBancario pago
+            left join fetch i.areaAcademica area
+            left join fetch i.escuelaProfesional escuela
+            left join fetch i.programaAcademico programa
+            left join fetch i.documentos documentos
+            where i.id = :id
+            """)
+    Optional<Inscripcion> buscarDetalleAdmin(@Param("id") Long id);
 }
