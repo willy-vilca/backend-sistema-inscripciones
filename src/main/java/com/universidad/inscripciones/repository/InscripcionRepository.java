@@ -39,12 +39,25 @@ public interface InscripcionRepository extends JpaRepository<Inscripcion, Long> 
             left join fetch i.areaAcademica area
             left join fetch i.escuelaProfesional escuela
             left join fetch i.programaAcademico programa
-            where (:buscar is null
-                or lower(i.codigoPostulante) like lower(concat('%', :buscar, '%'))
-                or lower(p.numeroDocumento) like lower(concat('%', :buscar, '%'))
-                or lower(p.nombres) like lower(concat('%', :buscar, '%'))
-                or lower(p.apellidoPaterno) like lower(concat('%', :buscar, '%'))
-                or lower(coalesce(p.apellidoMaterno, '')) like lower(concat('%', :buscar, '%')))
+            order by i.fechaRegistro desc
+            """)
+    List<Inscripcion> listarRecientesParaAdmin(Pageable pageable);
+
+    @Query("""
+            select i
+            from Inscripcion i
+            join fetch i.postulante p
+            join fetch i.procesoAdmision pr
+            join fetch i.modalidadAdmision m
+            join fetch i.pagoBancario pago
+            left join fetch i.areaAcademica area
+            left join fetch i.escuelaProfesional escuela
+            left join fetch i.programaAcademico programa
+            where lower(i.codigoPostulante) like concat('%', lower(:buscar), '%')
+                or lower(p.numeroDocumento) like concat('%', lower(:buscar), '%')
+                or lower(p.nombres) like concat('%', lower(:buscar), '%')
+                or lower(p.apellidoPaterno) like concat('%', lower(:buscar), '%')
+                or lower(coalesce(p.apellidoMaterno, '')) like concat('%', lower(:buscar), '%')
             order by i.fechaRegistro desc
             """)
     List<Inscripcion> buscarParaAdmin(@Param("buscar") String buscar, Pageable pageable);

@@ -41,7 +41,11 @@ public class InscripcionAdminService {
     @Transactional(readOnly = true)
     public List<InscripcionAdminListResponse> listar(String buscar) {
         String filtro = buscar == null || buscar.isBlank() ? null : buscar.trim();
-        return inscripcionRepository.buscarParaAdmin(filtro, PageRequest.of(0, 100))
+        List<Inscripcion> inscripciones = filtro == null
+                ? inscripcionRepository.listarRecientesParaAdmin(PageRequest.of(0, 100))
+                : inscripcionRepository.buscarParaAdmin(filtro, PageRequest.of(0, 100));
+
+        return inscripciones
                 .stream()
                 .map(InscripcionAdminListResponse::fromEntity)
                 .toList();
