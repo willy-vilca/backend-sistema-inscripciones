@@ -3,6 +3,7 @@ package com.universidad.inscripciones.service;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -79,6 +80,7 @@ public class PagoBancarioService {
         int filasLeidas = 0;
         int duplicados = 0;
         int omitidos = 0;
+        int actualizados = 0;
         List<PagoBancario> pagosCandidatos = new ArrayList<>();
         Set<String> movimientosArchivo = new HashSet<>();
 
@@ -128,22 +130,35 @@ public class PagoBancarioService {
                 pagosCandidatos.add(pago);
             }
 
-            Set<String> movimientosExistentes = pagoBancarioRepository.findByNroMovimientoIn(movimientosArchivo)
+            Map<String, PagoBancario> pagosExistentes = pagoBancarioRepository.findByNroMovimientoIn(movimientosArchivo)
                     .stream()
-                    .map(PagoBancario::getNroMovimiento)
-                    .collect(java.util.stream.Collectors.toSet());
+                    .collect(java.util.stream.Collectors.toMap(
+                            PagoBancario::getNroMovimiento,
+                            pago -> pago));
 
             List<PagoBancario> pagosNuevos = pagosCandidatos.stream()
-                    .filter(pago -> !movimientosExistentes.contains(pago.getNroMovimiento()))
+                    .filter(pago -> !pagosExistentes.containsKey(pago.getNroMovimiento()))
                     .toList();
 
             duplicados += pagosCandidatos.size() - pagosNuevos.size();
+
+            List<PagoBancario> pagosParaActualizar = new ArrayList<>();
+            for (PagoBancario candidato : pagosCandidatos) {
+                PagoBancario existente = pagosExistentes.get(candidato.getNroMovimiento());
+                if (existente != null && completarDatosFaltantes(existente, candidato)) {
+                    pagosParaActualizar.add(existente);
+                }
+            }
+
+            actualizados = pagosParaActualizar.size();
             pagoBancarioRepository.saveAll(pagosNuevos);
+            pagoBancarioRepository.saveAll(pagosParaActualizar);
 
             return new PagoImportacionResponse(
                     archivo.getOriginalFilename(),
                     filasLeidas,
                     pagosNuevos.size(),
+                    actualizados,
                     duplicados,
                     omitidos);
         } catch (IOException ex) {
@@ -205,16 +220,85 @@ public class PagoBancarioService {
     }
 
     private BigDecimal decimal(Row row, Map<String, Integer> columnas, String columna) {
-        String valor = texto(row, columnas, columna);
+        Cell cell = celda(row, columnas, columna);
+        if (cell == null) {
+            return null;
+        }
+
+        if (cell.getCellType() == CellType.NUMERIC) {
+            return BigDecimal.valueOf(cell.getNumericCellValue()).setScale(2, RoundingMode.HALF_UP);
+        }
+
+        if (cell.getCellType() == CellType.FORMULA && cell.getCachedFormulaResultType() == CellType.NUMERIC) {
+            return BigDecimal.valueOf(cell.getNumericCellValue()).setScale(2, RoundingMode.HALF_UP);
+        }
+
+        String valor = limpiar(celdaTexto(cell));
         if (valor == null || valor.isBlank()) {
             return null;
         }
-        String normalizado = valor.replace(",", "").trim();
+
+        String normalizado = normalizarDecimal(valor);
+        if (normalizado.isBlank() || "-".equals(normalizado)) {
+            return null;
+        }
+
         try {
-            return new BigDecimal(normalizado);
+            return new BigDecimal(normalizado).setScale(2, RoundingMode.HALF_UP);
         } catch (NumberFormatException ex) {
             return null;
         }
+    }
+
+    private boolean completarDatosFaltantes(PagoBancario existente, PagoBancario candidato) {
+        boolean actualizado = false;
+
+        if (existente.getImporteAPagar() == null && candidato.getImporteAPagar() != null) {
+            existente.setImporteAPagar(candidato.getImporteAPagar());
+            actualizado = true;
+        }
+
+        if (existente.getImportePagado() == null && candidato.getImportePagado() != null) {
+            existente.setImportePagado(candidato.getImportePagado());
+            actualizado = true;
+        }
+
+        if (existente.getDescripcionPago() == null && candidato.getDescripcionPago() != null) {
+            existente.setDescripcionPago(candidato.getDescripcionPago());
+            actualizado = true;
+        }
+
+        if (existente.getNombreCliente() == null && candidato.getNombreCliente() != null) {
+            existente.setNombreCliente(candidato.getNombreCliente());
+            actualizado = true;
+        }
+
+        return actualizado;
+    }
+
+    private String normalizarDecimal(String valor) {
+        String limpio = valor
+                .replace("S/.", "")
+                .replace("S/", "")
+                .replace("PEN", "")
+                .replaceAll("[^0-9,.-]", "")
+                .trim();
+
+        int ultimaComa = limpio.lastIndexOf(',');
+        int ultimoPunto = limpio.lastIndexOf('.');
+
+        if (ultimaComa >= 0 && ultimoPunto >= 0) {
+            if (ultimaComa > ultimoPunto) {
+                return limpio.replace(".", "").replace(",", ".");
+            }
+            return limpio.replace(",", "");
+        }
+
+        if (ultimaComa >= 0) {
+            return limpio.replace(",", ".");
+        }
+
+        return limpio;
     }
 
     private LocalDateTime fechaHora(Row row, Map<String, Integer> columnas, String columna) {
