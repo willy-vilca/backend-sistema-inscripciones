@@ -37,8 +37,8 @@ public class AdminAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        String token = extractToken(request.getHeader(HttpHeaders.AUTHORIZATION));
         try {
+            String token = extractToken(request.getHeader(HttpHeaders.AUTHORIZATION));
             AdminUserResponse user = adminUserService.me(token);
             if (path.startsWith("/api/admin/usuarios") && user.rol() != RolAdmin.ADMIN) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
