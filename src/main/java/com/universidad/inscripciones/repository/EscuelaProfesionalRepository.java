@@ -12,4 +12,12 @@ public interface EscuelaProfesionalRepository extends JpaRepository<EscuelaProfe
     List<EscuelaProfesional> findByAreaAcademicaIdAndActivoTrueOrderByNombreAsc(Long areaAcademicaId);
 
     Optional<EscuelaProfesional> findByAreaAcademicaCodigoAndNombre(String codigoArea, String nombre);
+
+    boolean existsByAreaAcademicaIdAndNombre(Long areaAcademicaId, String nombre);
+
+    boolean existsByAreaAcademicaIdAndNombreAndIdNot(Long areaAcademicaId, String nombre, Long id);
+
+    long countByAreaAcademicaId(Long areaAcademicaId);
+
+    List<EscuelaProfesional> findAllByOrderByAreaAcademicaCodigoAscNombreAsc();
 }

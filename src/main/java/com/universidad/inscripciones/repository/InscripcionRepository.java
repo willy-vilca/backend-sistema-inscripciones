@@ -29,6 +29,65 @@ public interface InscripcionRepository extends JpaRepository<Inscripcion, Long> 
             Long procesoAdmisionId,
             EstadoInscripcion estado);
 
+    long countByProcesoAdmisionId(Long procesoAdmisionId);
+
+    long countByAreaAcademicaId(Long areaAcademicaId);
+
+    long countByEscuelaProfesionalId(Long escuelaProfesionalId);
+
+    @Query("""
+            select count(i)
+            from Inscripcion i
+            where (:procesoId is null or i.procesoAdmision.id = :procesoId)
+                and (:modalidadId is null or i.modalidadAdmision.id = :modalidadId)
+                and (:areaId is null or i.areaAcademica.id = :areaId)
+                and (:escuelaId is null or i.escuelaProfesional.id = :escuelaId)
+                and i.estado <> com.universidad.inscripciones.model.enums.EstadoInscripcion.ANULADA
+            """)
+    long contarPorFiltros(
+            @Param("procesoId") Long procesoId,
+            @Param("modalidadId") Long modalidadId,
+            @Param("areaId") Long areaId,
+            @Param("escuelaId") Long escuelaId);
+
+    @Query("""
+            select i.procesoAdmision.id, i.procesoAdmision.nombre, count(i)
+            from Inscripcion i
+            where i.estado <> com.universidad.inscripciones.model.enums.EstadoInscripcion.ANULADA
+            group by i.procesoAdmision.id, i.procesoAdmision.nombre
+            order by count(i) desc, i.procesoAdmision.nombre asc
+            """)
+    List<Object[]> agruparPorProceso();
+
+    @Query("""
+            select i.modalidadAdmision.id, i.modalidadAdmision.nombre, count(i)
+            from Inscripcion i
+            where i.estado <> com.universidad.inscripciones.model.enums.EstadoInscripcion.ANULADA
+            group by i.modalidadAdmision.id, i.modalidadAdmision.nombre
+            order by count(i) desc, i.modalidadAdmision.nombre asc
+            """)
+    List<Object[]> agruparPorModalidad();
+
+    @Query("""
+            select i.areaAcademica.id, i.areaAcademica.nombre, count(i)
+            from Inscripcion i
+            where i.areaAcademica is not null
+                and i.estado <> com.universidad.inscripciones.model.enums.EstadoInscripcion.ANULADA
+            group by i.areaAcademica.id, i.areaAcademica.nombre
+            order by count(i) desc, i.areaAcademica.nombre asc
+            """)
+    List<Object[]> agruparPorArea();
+
+    @Query("""
+            select i.escuelaProfesional.id, i.escuelaProfesional.nombre, count(i)
+            from Inscripcion i
+            where i.escuelaProfesional is not null
+                and i.estado <> com.universidad.inscripciones.model.enums.EstadoInscripcion.ANULADA
+            group by i.escuelaProfesional.id, i.escuelaProfesional.nombre
+            order by count(i) desc, i.escuelaProfesional.nombre asc
+            """)
+    List<Object[]> agruparPorCarrera();
+
     @Query("""
             select i
             from Inscripcion i

@@ -11,5 +11,7 @@ public interface ProgramaAcademicoRepository extends JpaRepository<ProgramaAcade
 
     List<ProgramaAcademico> findByEscuelaProfesionalIdAndActivoTrueOrderByNombreAsc(Long escuelaProfesionalId);
 
+    List<ProgramaAcademico> findByEscuelaProfesionalIdOrderByNombreAsc(Long escuelaProfesionalId);
+
     Optional<ProgramaAcademico> findByEscuelaProfesionalIdAndNombre(Long escuelaProfesionalId, String nombre);
 }

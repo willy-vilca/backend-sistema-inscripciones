@@ -41,7 +41,7 @@ public class InicioInscripcionService {
 
         return new CatalogoInicioInscripcionResponse(
                 tiposDocumento,
-                procesoAdmisionRepository.findByActivoTrueOrderByNombreAsc()
+                procesoAdmisionRepository.findVigentesOrderByNombreAsc()
                         .stream()
                         .map(ProcesoAdmisionOption::fromEntity)
                         .toList(),
