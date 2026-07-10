@@ -8,17 +8,21 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.universidad.inscripciones.dto.admin.ArchivoDownload;
+import com.universidad.inscripciones.dto.admin.AnularInscripcionRequest;
 import com.universidad.inscripciones.dto.admin.InscripcionAdminDetailResponse;
 import com.universidad.inscripciones.dto.admin.InscripcionAdminListResponse;
 import com.universidad.inscripciones.dto.admin.InscripcionAdminResumenResponse;
 import com.universidad.inscripciones.service.InscripcionAdminService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -42,6 +46,18 @@ public class InscripcionAdminController {
     @GetMapping("/{id}")
     public InscripcionAdminDetailResponse obtenerDetalle(@PathVariable Long id) {
         return inscripcionAdminService.obtenerDetalle(id);
+    }
+
+    @PatchMapping("/{id}/aprobar")
+    public InscripcionAdminDetailResponse aprobar(@PathVariable Long id) {
+        return inscripcionAdminService.aprobar(id);
+    }
+
+    @PatchMapping("/{id}/anular")
+    public InscripcionAdminDetailResponse anular(
+            @PathVariable Long id,
+            @Valid @RequestBody AnularInscripcionRequest request) {
+        return inscripcionAdminService.anular(id, request);
     }
 
     @GetMapping("/{id}/foto")

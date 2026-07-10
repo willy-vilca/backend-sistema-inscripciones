@@ -17,11 +17,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.universidad.inscripciones.dto.admin.ArchivoDownload;
+import com.universidad.inscripciones.dto.admin.AnularInscripcionRequest;
 import com.universidad.inscripciones.dto.admin.InscripcionAdminDetailResponse;
 import com.universidad.inscripciones.dto.admin.InscripcionAdminListResponse;
 import com.universidad.inscripciones.dto.admin.InscripcionAdminResumenResponse;
 import com.universidad.inscripciones.model.entity.DocumentoPostulante;
 import com.universidad.inscripciones.model.entity.Inscripcion;
+import com.universidad.inscripciones.model.entity.PagoBancario;
 import com.universidad.inscripciones.model.enums.EstadoInscripcion;
 import com.universidad.inscripciones.repository.DocumentoPostulanteRepository;
 import com.universidad.inscripciones.repository.InscripcionRepository;
@@ -60,6 +62,7 @@ public class InscripcionAdminService {
         return new InscripcionAdminResumenResponse(
                 inscripcionRepository.count(),
                 inscripcionRepository.countByEstado(EstadoInscripcion.REGISTRADA),
+                inscripcionRepository.countByEstado(EstadoInscripcion.APROBADA),
                 inscripcionRepository.countByEstado(EstadoInscripcion.ANULADA),
                 inscripcionRepository.countByFechaRegistroBetween(inicio, fin));
     }
@@ -68,6 +71,44 @@ public class InscripcionAdminService {
     public InscripcionAdminDetailResponse obtenerDetalle(Long id) {
         Inscripcion inscripcion = inscripcionRepository.buscarDetalleAdmin(id)
                 .orElseThrow(() -> new IllegalArgumentException("Inscripcion no encontrada."));
+        return InscripcionAdminDetailResponse.fromEntity(inscripcion);
+    }
+
+    @Transactional
+    public InscripcionAdminDetailResponse aprobar(Long id) {
+        Inscripcion inscripcion = inscripcionRepository.buscarDetalleAdmin(id)
+                .orElseThrow(() -> new IllegalArgumentException("Inscripcion no encontrada."));
+
+        if (inscripcion.getEstado() == EstadoInscripcion.ANULADA) {
+            throw new IllegalArgumentException("No se puede aprobar una inscripcion anulada.");
+        }
+
+        inscripcion.setEstado(EstadoInscripcion.APROBADA);
+        inscripcion.setObservaciones(null);
+        return InscripcionAdminDetailResponse.fromEntity(inscripcion);
+    }
+
+    @Transactional
+    public InscripcionAdminDetailResponse anular(Long id, AnularInscripcionRequest request) {
+        String motivo = request.motivo() == null ? "" : request.motivo().trim();
+        if (motivo.isBlank()) {
+            throw new IllegalArgumentException("El motivo de anulacion es obligatorio.");
+        }
+
+        Inscripcion inscripcion = inscripcionRepository.buscarDetalleAdmin(id)
+                .orElseThrow(() -> new IllegalArgumentException("Inscripcion no encontrada."));
+
+        if (inscripcion.getEstado() == EstadoInscripcion.ANULADA) {
+            throw new IllegalArgumentException("La inscripcion ya se encuentra anulada.");
+        }
+
+        inscripcion.setEstado(EstadoInscripcion.ANULADA);
+        inscripcion.setObservaciones(motivo);
+
+        PagoBancario pago = inscripcion.getPagoBancario();
+        pago.setUsado(false);
+        pago.setUsadoEn(null);
+
         return InscripcionAdminDetailResponse.fromEntity(inscripcion);
     }
 

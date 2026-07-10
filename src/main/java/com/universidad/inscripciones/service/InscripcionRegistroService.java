@@ -68,14 +68,15 @@ public class InscripcionRegistroService {
         }
 
         boolean yaInscrito = inscripcionRepository
-                .existsByPostulanteTipoDocumentoAndPostulanteNumeroDocumentoAndProcesoAdmisionIdAndEstadoNot(
+                .existsByPostulanteTipoDocumentoAndPostulanteNumeroDocumentoAndProcesoAdmisionIdAndEstadoIn(
                         request.tipoDocumento(),
                         request.numeroDocumento().trim(),
                         request.procesoAdmisionId(),
-                        EstadoInscripcion.ANULADA);
+                        List.of(EstadoInscripcion.REGISTRADA, EstadoInscripcion.APROBADA));
 
         if (yaInscrito) {
-            throw new IllegalArgumentException("El numero de documento ya esta inscrito en este proceso de admision.");
+            throw new IllegalArgumentException(
+                    "El numero de documento ya tiene una inscripcion registrada o aprobada en este proceso de admision.");
         }
 
         Postulante postulante = postulanteRepository

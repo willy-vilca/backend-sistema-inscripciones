@@ -1,6 +1,7 @@
 package com.universidad.inscripciones.repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,11 +33,13 @@ public interface InscripcionRepository extends JpaRepository<Inscripcion, Long> 
             where i.procesoAdmision.id = :procesoAdmisionId
                 and p.tipoDocumento = :tipoDocumento
                 and p.numeroDocumento = :numeroDocumento
+            order by i.fechaRegistro desc, i.id desc
             """)
-    Optional<Inscripcion> buscarConsultaPublica(
+    List<Inscripcion> buscarConsultasPublicasRecientes(
             @Param("procesoAdmisionId") Long procesoAdmisionId,
             @Param("tipoDocumento") TipoDocumento tipoDocumento,
-            @Param("numeroDocumento") String numeroDocumento);
+            @Param("numeroDocumento") String numeroDocumento,
+            Pageable pageable);
 
     long countByEstado(EstadoInscripcion estado);
 
@@ -47,6 +50,12 @@ public interface InscripcionRepository extends JpaRepository<Inscripcion, Long> 
             String numeroDocumento,
             Long procesoAdmisionId,
             EstadoInscripcion estado);
+
+    boolean existsByPostulanteTipoDocumentoAndPostulanteNumeroDocumentoAndProcesoAdmisionIdAndEstadoIn(
+            TipoDocumento tipoDocumento,
+            String numeroDocumento,
+            Long procesoAdmisionId,
+            Collection<EstadoInscripcion> estados);
 
     long countByProcesoAdmisionId(Long procesoAdmisionId);
 

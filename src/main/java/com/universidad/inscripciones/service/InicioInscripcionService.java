@@ -3,6 +3,7 @@ package com.universidad.inscripciones.service;
 import java.util.Arrays;
 import java.util.List;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,17 +73,20 @@ public class InicioInscripcionService {
     @Transactional(readOnly = true)
     public DocumentoDisponibilidadResponse verificarDocumento(DocumentoDisponibilidadRequest request) {
         String numeroDocumento = request.numeroDocumento().trim();
+        List<EstadoInscripcion> estadosBloqueantes = List.of(
+                EstadoInscripcion.REGISTRADA,
+                EstadoInscripcion.APROBADA);
         boolean yaInscrito = inscripcionRepository
-                .existsByPostulanteTipoDocumentoAndPostulanteNumeroDocumentoAndProcesoAdmisionIdAndEstadoNot(
+                .existsByPostulanteTipoDocumentoAndPostulanteNumeroDocumentoAndProcesoAdmisionIdAndEstadoIn(
                         request.tipoDocumento(),
                         numeroDocumento,
                         request.procesoAdmisionId(),
-                        EstadoInscripcion.ANULADA);
+                        estadosBloqueantes);
 
         if (yaInscrito) {
             return new DocumentoDisponibilidadResponse(
                     false,
-                    "El numero de documento ya se encuentra inscrito en este proceso de admision.");
+                    "El numero de documento ya tiene una inscripcion registrada o aprobada en este proceso de admision.");
         }
 
         return new DocumentoDisponibilidadResponse(
@@ -95,10 +99,13 @@ public class InicioInscripcionService {
         String numeroDocumento = request.numeroDocumento().trim();
 
         return inscripcionRepository
-                .buscarConsultaPublica(
+                .buscarConsultasPublicasRecientes(
                         request.procesoAdmisionId(),
                         request.tipoDocumento(),
-                        numeroDocumento)
+                        numeroDocumento,
+                        PageRequest.of(0, 1))
+                .stream()
+                .findFirst()
                 .map(ConsultaInscripcionResponse::fromEntity)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No se encontro ninguna inscripcion con ese numero de documento en el proceso seleccionado."));

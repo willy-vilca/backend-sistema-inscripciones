@@ -21,7 +21,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -61,8 +60,8 @@ public class Inscripcion extends AuditableEntity {
     @Column(nullable = false, length = 30)
     private TipoColegio tipoColegio;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "pago_bancario_id", nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "pago_bancario_id", nullable = false)
     private PagoBancario pagoBancario;
 
     @ManyToOne(fetch = FetchType.LAZY)
