@@ -1,6 +1,9 @@
 package com.universidad.inscripciones.service;
 
 import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -9,10 +12,13 @@ import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
+import javax.imageio.ImageIO;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
@@ -81,16 +87,16 @@ public class CarnePdfService {
         }
     }
 
+    @Transactional
     public CarnePdfDownload obtenerCarne(Long inscripcionId) {
-        Inscripcion inscripcion = inscripcionRepository.findById(inscripcionId)
+        Inscripcion inscripcion = inscripcionRepository.buscarDetalleAdmin(inscripcionId)
                 .orElseThrow(() -> new IllegalArgumentException("Inscripcion no encontrada."));
 
-        if (inscripcion.getCarnePdfPath() == null || inscripcion.getCarnePdfPath().isBlank()) {
-            throw new IllegalArgumentException("La inscripcion aun no tiene carne generado.");
-        }
+        String carnePath = generarCarne(inscripcion);
+        inscripcion.setCarnePdfPath(carnePath);
 
         try {
-            Path file = uploadRoot().resolve(inscripcion.getCarnePdfPath()).normalize();
+            Path file = uploadRoot().resolve(carnePath).normalize();
             if (!file.startsWith(uploadRoot()) || !Files.exists(file)) {
                 throw new IllegalArgumentException("No se encontro el archivo del carne.");
             }
@@ -285,12 +291,38 @@ public class CarnePdfService {
             if (!photo.startsWith(uploadRoot()) || !Files.exists(photo)) {
                 return;
             }
-            Image image = Image.getInstance(photo.toAbsolutePath().toString());
+            Image image = loadPhotoImage(photo);
             image.scaleToFit(width - 2f, height - 2f);
             image.setAbsolutePosition(x + ((width - image.getScaledWidth()) / 2f), y + ((height - image.getScaledHeight()) / 2f));
             canvas.addImage(image);
         } catch (Exception ignored) {
             writeText(canvas, "FOTO", x + width / 2f, y + height / 2f, font(8, Font.BOLD, GRAY), Element.ALIGN_CENTER);
+        }
+    }
+
+    private Image loadPhotoImage(Path photo) throws IOException, DocumentException {
+        try {
+            return Image.getInstance(photo.toAbsolutePath().toString());
+        } catch (Exception ex) {
+            BufferedImage source = ImageIO.read(photo.toFile());
+            if (source == null) {
+                throw new IOException("Formato de fotografia no compatible.");
+            }
+
+            BufferedImage rgbImage = new BufferedImage(
+                    source.getWidth(),
+                    source.getHeight(),
+                    BufferedImage.TYPE_INT_RGB);
+            Graphics2D graphics = rgbImage.createGraphics();
+            graphics.setColor(Color.WHITE);
+            graphics.fillRect(0, 0, rgbImage.getWidth(), rgbImage.getHeight());
+            graphics.drawImage(source, 0, 0, null);
+            graphics.dispose();
+
+            try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+                ImageIO.write(rgbImage, "jpg", output);
+                return Image.getInstance(output.toByteArray());
+            }
         }
     }
 
