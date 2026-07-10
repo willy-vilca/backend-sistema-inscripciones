@@ -19,6 +19,25 @@ public interface InscripcionRepository extends JpaRepository<Inscripcion, Long> 
 
     boolean existsByCodigoPostulante(String codigoPostulante);
 
+    @Query("""
+            select i
+            from Inscripcion i
+            join fetch i.postulante p
+            join fetch i.procesoAdmision pr
+            join fetch i.modalidadAdmision m
+            join fetch i.pagoBancario pago
+            left join fetch i.areaAcademica area
+            left join fetch i.escuelaProfesional escuela
+            left join fetch i.programaAcademico programa
+            where i.procesoAdmision.id = :procesoAdmisionId
+                and p.tipoDocumento = :tipoDocumento
+                and p.numeroDocumento = :numeroDocumento
+            """)
+    Optional<Inscripcion> buscarConsultaPublica(
+            @Param("procesoAdmisionId") Long procesoAdmisionId,
+            @Param("tipoDocumento") TipoDocumento tipoDocumento,
+            @Param("numeroDocumento") String numeroDocumento);
+
     long countByEstado(EstadoInscripcion estado);
 
     long countByFechaRegistroBetween(LocalDateTime inicio, LocalDateTime fin);

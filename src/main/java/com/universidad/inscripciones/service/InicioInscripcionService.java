@@ -7,7 +7,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.universidad.inscripciones.dto.common.OptionResponse;
+import com.universidad.inscripciones.dto.publico.CatalogoConsultaInscripcionResponse;
 import com.universidad.inscripciones.dto.publico.CatalogoInicioInscripcionResponse;
+import com.universidad.inscripciones.dto.publico.ConsultaInscripcionRequest;
+import com.universidad.inscripciones.dto.publico.ConsultaInscripcionResponse;
 import com.universidad.inscripciones.dto.publico.DocumentoDisponibilidadRequest;
 import com.universidad.inscripciones.dto.publico.DocumentoDisponibilidadResponse;
 import com.universidad.inscripciones.dto.publico.ModalidadAdmisionOption;
@@ -53,6 +56,20 @@ public class InicioInscripcionService {
     }
 
     @Transactional(readOnly = true)
+    public CatalogoConsultaInscripcionResponse obtenerCatalogosConsulta() {
+        List<OptionResponse> tiposDocumento = Arrays.stream(TipoDocumento.values())
+                .map(tipo -> new OptionResponse(tipo.name(), etiqueta(tipo.name())))
+                .toList();
+
+        return new CatalogoConsultaInscripcionResponse(
+                tiposDocumento,
+                procesoAdmisionRepository.findAllByOrderByNombreAsc()
+                        .stream()
+                        .map(ProcesoAdmisionOption::fromEntity)
+                        .toList());
+    }
+
+    @Transactional(readOnly = true)
     public DocumentoDisponibilidadResponse verificarDocumento(DocumentoDisponibilidadRequest request) {
         String numeroDocumento = request.numeroDocumento().trim();
         boolean yaInscrito = inscripcionRepository
@@ -71,6 +88,20 @@ public class InicioInscripcionService {
         return new DocumentoDisponibilidadResponse(
                 true,
                 "El documento esta disponible para iniciar la inscripcion.");
+    }
+
+    @Transactional(readOnly = true)
+    public ConsultaInscripcionResponse consultarInscripcion(ConsultaInscripcionRequest request) {
+        String numeroDocumento = request.numeroDocumento().trim();
+
+        return inscripcionRepository
+                .buscarConsultaPublica(
+                        request.procesoAdmisionId(),
+                        request.tipoDocumento(),
+                        numeroDocumento)
+                .map(ConsultaInscripcionResponse::fromEntity)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No se encontro ninguna inscripcion con ese numero de documento en el proceso seleccionado."));
     }
 
     private String etiqueta(String value) {

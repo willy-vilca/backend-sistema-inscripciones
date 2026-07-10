@@ -16,6 +16,8 @@ public interface ProcesoAdmisionRepository extends JpaRepository<ProcesoAdmision
 
     List<ProcesoAdmision> findByActivoTrueOrderByNombreAsc();
 
+    List<ProcesoAdmision> findAllByOrderByNombreAsc();
+
     boolean existsByCodigoAndIdNot(String codigo, Long id);
 
     @Query("""

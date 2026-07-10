@@ -24,7 +24,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.universidad.inscripciones.dto.inscripcion.CarnePdfDownload;
 import com.universidad.inscripciones.dto.inscripcion.InscripcionRegistroRequest;
 import com.universidad.inscripciones.dto.inscripcion.InscripcionRegistroResponse;
+import com.universidad.inscripciones.dto.publico.CatalogoConsultaInscripcionResponse;
 import com.universidad.inscripciones.dto.publico.CatalogoInicioInscripcionResponse;
+import com.universidad.inscripciones.dto.publico.ConsultaInscripcionRequest;
+import com.universidad.inscripciones.dto.publico.ConsultaInscripcionResponse;
 import com.universidad.inscripciones.dto.publico.DocumentoDisponibilidadRequest;
 import com.universidad.inscripciones.dto.publico.DocumentoDisponibilidadResponse;
 import com.universidad.inscripciones.dto.publico.PagoValidacionRequest;
@@ -53,10 +56,21 @@ public class InicioInscripcionController {
         return inicioInscripcionService.obtenerCatalogos();
     }
 
+    @GetMapping("/catalogos-consulta")
+    public CatalogoConsultaInscripcionResponse obtenerCatalogosConsulta() {
+        return inicioInscripcionService.obtenerCatalogosConsulta();
+    }
+
     @PostMapping("/verificar-documento")
     public DocumentoDisponibilidadResponse verificarDocumento(
             @Valid @RequestBody DocumentoDisponibilidadRequest request) {
         return inicioInscripcionService.verificarDocumento(request);
+    }
+
+    @PostMapping("/consultar")
+    public ConsultaInscripcionResponse consultarInscripcion(
+            @Valid @RequestBody ConsultaInscripcionRequest request) {
+        return inicioInscripcionService.consultarInscripcion(request);
     }
 
     @PostMapping("/validar-pago")

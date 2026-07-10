@@ -37,7 +37,7 @@ public class DocumentoPostulante extends AuditableEntity {
     @JoinColumn(name = "inscripcion_id", nullable = false)
     private Inscripcion inscripcion;
 
-    @Column(nullable = false, length = 140)
+    @Column(nullable = false, length = 250)
     private String tipoDocumento;
 
     @Column(nullable = false, length = 180)
