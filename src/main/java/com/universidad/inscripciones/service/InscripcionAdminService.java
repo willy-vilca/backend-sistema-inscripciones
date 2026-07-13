@@ -42,10 +42,15 @@ public class InscripcionAdminService {
 
     @Transactional(readOnly = true)
     public List<InscripcionAdminListResponse> listar(String buscar) {
+        return listar(buscar, "TODOS", 0);
+    }
+
+    @Transactional(readOnly = true)
+    public List<InscripcionAdminListResponse> listar(String buscar, String estado, int bloque) {
         String filtro = buscar == null || buscar.isBlank() ? null : buscar.trim();
-        List<Inscripcion> inscripciones = filtro == null
-                ? inscripcionRepository.listarRecientesParaAdmin(PageRequest.of(0, 100))
-                : inscripcionRepository.buscarParaAdmin(filtro, PageRequest.of(0, 100));
+        EstadoInscripcion estadoFiltro = obtenerEstadoFiltro(estado);
+        PageRequest pagina = PageRequest.of(Math.max(bloque, 0), 100);
+        List<Inscripcion> inscripciones = obtenerInscripcionesAdmin(filtro, estadoFiltro, pagina);
 
         return inscripciones
                 .stream()
@@ -127,6 +132,37 @@ public class InscripcionAdminService {
                 fotoPath,
                 "foto-" + inscripcion.getCodigoPostulante() + extension,
                 detectarContentType(fotoPath, "image/jpeg"));
+    }
+
+    private EstadoInscripcion obtenerEstadoFiltro(String estado) {
+        if (estado == null || estado.isBlank() || "TODOS".equalsIgnoreCase(estado)) {
+            return null;
+        }
+
+        try {
+            return EstadoInscripcion.valueOf(estado.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Estado de inscripcion no valido.");
+        }
+    }
+
+    private List<Inscripcion> obtenerInscripcionesAdmin(
+            String filtro,
+            EstadoInscripcion estado,
+            PageRequest pagina) {
+        if (filtro == null && estado == null) {
+            return inscripcionRepository.listarRecientesParaAdmin(pagina);
+        }
+
+        if (filtro == null) {
+            return inscripcionRepository.listarRecientesParaAdminPorEstado(estado, pagina);
+        }
+
+        if (estado == null) {
+            return inscripcionRepository.buscarParaAdmin(filtro, pagina);
+        }
+
+        return inscripcionRepository.buscarParaAdminPorEstado(filtro, estado, pagina);
     }
 
     @Transactional(readOnly = true)

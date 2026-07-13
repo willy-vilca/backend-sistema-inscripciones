@@ -140,6 +140,23 @@ public interface InscripcionRepository extends JpaRepository<Inscripcion, Long> 
             left join fetch i.areaAcademica area
             left join fetch i.escuelaProfesional escuela
             left join fetch i.programaAcademico programa
+            where i.estado = :estado
+            order by i.fechaRegistro desc
+            """)
+    List<Inscripcion> listarRecientesParaAdminPorEstado(
+            @Param("estado") EstadoInscripcion estado,
+            Pageable pageable);
+
+    @Query("""
+            select i
+            from Inscripcion i
+            join fetch i.postulante p
+            join fetch i.procesoAdmision pr
+            join fetch i.modalidadAdmision m
+            join fetch i.pagoBancario pago
+            left join fetch i.areaAcademica area
+            left join fetch i.escuelaProfesional escuela
+            left join fetch i.programaAcademico programa
             where lower(i.codigoPostulante) like concat('%', lower(:buscar), '%')
                 or lower(p.numeroDocumento) like concat('%', lower(:buscar), '%')
                 or lower(p.nombres) like concat('%', lower(:buscar), '%')
@@ -148,6 +165,31 @@ public interface InscripcionRepository extends JpaRepository<Inscripcion, Long> 
             order by i.fechaRegistro desc
             """)
     List<Inscripcion> buscarParaAdmin(@Param("buscar") String buscar, Pageable pageable);
+
+    @Query("""
+            select i
+            from Inscripcion i
+            join fetch i.postulante p
+            join fetch i.procesoAdmision pr
+            join fetch i.modalidadAdmision m
+            join fetch i.pagoBancario pago
+            left join fetch i.areaAcademica area
+            left join fetch i.escuelaProfesional escuela
+            left join fetch i.programaAcademico programa
+            where i.estado = :estado
+                and (
+                    lower(i.codigoPostulante) like concat('%', lower(:buscar), '%')
+                    or lower(p.numeroDocumento) like concat('%', lower(:buscar), '%')
+                    or lower(p.nombres) like concat('%', lower(:buscar), '%')
+                    or lower(p.apellidoPaterno) like concat('%', lower(:buscar), '%')
+                    or lower(coalesce(p.apellidoMaterno, '')) like concat('%', lower(:buscar), '%')
+                )
+            order by i.fechaRegistro desc
+            """)
+    List<Inscripcion> buscarParaAdminPorEstado(
+            @Param("buscar") String buscar,
+            @Param("estado") EstadoInscripcion estado,
+            Pageable pageable);
 
     @Query("""
             select distinct i

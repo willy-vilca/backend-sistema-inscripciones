@@ -34,8 +34,10 @@ public class InscripcionAdminController {
 
     @GetMapping
     public List<InscripcionAdminListResponse> listarPostulantes(
-            @RequestParam(value = "buscar", required = false) String buscar) {
-        return inscripcionAdminService.listar(buscar);
+            @RequestParam(value = "buscar", required = false) String buscar,
+            @RequestParam(value = "estado", required = false, defaultValue = "TODOS") String estado,
+            @RequestParam(value = "bloque", required = false, defaultValue = "0") int bloque) {
+        return inscripcionAdminService.listar(buscar, estado, bloque);
     }
 
     @GetMapping("/resumen")
