@@ -25,8 +25,11 @@ public class PagoBancarioController {
     private final PagoBancarioService pagoBancarioService;
 
     @GetMapping
-    public List<PagoBancarioResponse> listarUltimosPagos() {
-        return pagoBancarioService.listarUltimosPagos();
+    public List<PagoBancarioResponse> listarPagos(
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false, defaultValue = "TODOS") String estado,
+            @RequestParam(required = false, defaultValue = "0") int bloque) {
+        return pagoBancarioService.listarPagosAdministracion(busqueda, estado, bloque);
     }
 
     @GetMapping("/resumen")

@@ -26,6 +26,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -41,6 +42,8 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class PagoBancarioService {
+
+    private static final int TAMANIO_BLOQUE_ADMIN = 100;
 
     private static final List<String> COLUMNAS_REQUERIDAS = List.of(
             "NOMBRE CLIENTE",
@@ -59,8 +62,15 @@ public class PagoBancarioService {
     private final DataFormatter dataFormatter = new DataFormatter(Locale.US);
 
     @Transactional(readOnly = true)
-    public List<PagoBancarioResponse> listarUltimosPagos() {
-        return pagoBancarioRepository.findTop100ByOrderByCreadoEnDesc()
+    public List<PagoBancarioResponse> listarPagosAdministracion(String busqueda, String estado, int bloque) {
+        String busquedaLimpia = busqueda == null || busqueda.isBlank() ? null : busqueda.trim();
+        Boolean usado = obtenerFiltroUsado(estado);
+        int bloqueSeguro = Math.max(bloque, 0);
+        PageRequest pagina = PageRequest.of(bloqueSeguro, TAMANIO_BLOQUE_ADMIN);
+
+        List<PagoBancario> pagos = obtenerPagosAdministracion(busquedaLimpia, usado, pagina);
+
+        return pagos
                 .stream()
                 .map(PagoBancarioResponse::fromEntity)
                 .toList();
@@ -175,6 +185,34 @@ public class PagoBancarioService {
         if (nombre == null || !(nombre.toLowerCase().endsWith(".xlsx") || nombre.toLowerCase().endsWith(".xls"))) {
             throw new IllegalArgumentException("El archivo debe tener formato .xlsx o .xls.");
         }
+    }
+
+    private Boolean obtenerFiltroUsado(String estado) {
+        if (estado == null || estado.isBlank() || "TODOS".equalsIgnoreCase(estado)) {
+            return null;
+        }
+
+        if ("DISPONIBLE".equalsIgnoreCase(estado)) {
+            return false;
+        }
+
+        if ("USADO".equalsIgnoreCase(estado)) {
+            return true;
+        }
+
+        return null;
+    }
+
+    private List<PagoBancario> obtenerPagosAdministracion(String busqueda, Boolean usado, PageRequest pagina) {
+        if (busqueda == null && usado == null) {
+            return pagoBancarioRepository.listarParaAdministracion(pagina);
+        }
+
+        if (busqueda == null) {
+            return pagoBancarioRepository.listarParaAdministracionPorEstado(usado, pagina);
+        }
+
+        return pagoBancarioRepository.buscarParaAdministracionConBusqueda(busqueda, usado, pagina);
     }
 
     private Map<String, Integer> obtenerColumnas(Row header) {
