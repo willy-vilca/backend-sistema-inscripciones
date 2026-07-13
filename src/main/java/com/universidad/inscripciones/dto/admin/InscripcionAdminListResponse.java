@@ -20,6 +20,7 @@ public record InscripcionAdminListResponse(
         BigDecimal importePagado,
         LocalDateTime fechaRegistro,
         EstadoInscripcion estado,
+        String observaciones,
         String carneDownloadUrl) {
 
     public static InscripcionAdminListResponse fromEntity(Inscripcion inscripcion) {
@@ -37,6 +38,7 @@ public record InscripcionAdminListResponse(
                 inscripcion.getPagoBancario().getImportePagado(),
                 inscripcion.getFechaRegistro(),
                 inscripcion.getEstado(),
+                inscripcion.getObservaciones(),
                 "/public/inscripcion/" + inscripcion.getId() + "/carne");
     }
 
