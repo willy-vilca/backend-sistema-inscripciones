@@ -32,10 +32,12 @@ import com.universidad.inscripciones.dto.publico.DocumentoDisponibilidadRequest;
 import com.universidad.inscripciones.dto.publico.DocumentoDisponibilidadResponse;
 import com.universidad.inscripciones.dto.publico.PagoValidacionRequest;
 import com.universidad.inscripciones.dto.publico.PagoValidacionResponse;
+import com.universidad.inscripciones.dto.publico.ReniecDniResponse;
 import com.universidad.inscripciones.service.CarnePdfService;
 import com.universidad.inscripciones.service.InscripcionRegistroService;
 import com.universidad.inscripciones.service.InicioInscripcionService;
 import com.universidad.inscripciones.service.PagoValidacionService;
+import com.universidad.inscripciones.service.ReniecDniService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +51,7 @@ public class InicioInscripcionController {
     private final PagoValidacionService pagoValidacionService;
     private final InscripcionRegistroService inscripcionRegistroService;
     private final CarnePdfService carnePdfService;
+    private final ReniecDniService reniecDniService;
     private final ObjectMapper objectMapper;
 
     @GetMapping("/catalogos")
@@ -65,6 +68,11 @@ public class InicioInscripcionController {
     public DocumentoDisponibilidadResponse verificarDocumento(
             @Valid @RequestBody DocumentoDisponibilidadRequest request) {
         return inicioInscripcionService.verificarDocumento(request);
+    }
+
+    @GetMapping("/reniec/dni")
+    public ReniecDniResponse consultarDniReniec(@RequestParam String numero) {
+        return reniecDniService.consultarDni(numero);
     }
 
     @PostMapping("/consultar")
