@@ -12,4 +12,8 @@ public interface DocumentoPostulanteRepository extends JpaRepository<DocumentoPo
     List<DocumentoPostulante> findByInscripcionId(Long inscripcionId);
 
     Optional<DocumentoPostulante> findByIdAndInscripcionId(Long id, Long inscripcionId);
+
+    Optional<DocumentoPostulante> findFirstByInscripcionIdAndTipoDocumento(Long inscripcionId, String tipoDocumento);
+
+    boolean existsByInscripcionIdAndTipoDocumento(Long inscripcionId, String tipoDocumento);
 }

@@ -28,10 +28,19 @@ public record InscripcionAdminDetailResponse(
         InformacionAdicional informacionAdicional,
         DatosPostulacion datosPostulacion,
         PagoDetalle pago,
+        DocumentoDetalle huellaDigital,
         List<DocumentoDetalle> documentos) {
+
+    private static final String HUELLA_DIGITAL_TIPO = "Huella digital del postulante";
 
     public static InscripcionAdminDetailResponse fromEntity(Inscripcion inscripcion) {
         Postulante postulante = inscripcion.getPostulante();
+        DocumentoDetalle huellaDigital = inscripcion.getDocumentos().stream()
+                .filter(documento -> HUELLA_DIGITAL_TIPO.equals(documento.getTipoDocumento()))
+                .findFirst()
+                .map(documento -> documento(documento, inscripcion.getId()))
+                .orElse(null);
+
         return new InscripcionAdminDetailResponse(
                 inscripcion.getId(),
                 inscripcion.getCodigoPostulante(),
@@ -50,7 +59,9 @@ public record InscripcionAdminDetailResponse(
                 informacionAdicional(postulante),
                 datosPostulacion(inscripcion),
                 pago(inscripcion.getPagoBancario()),
+                huellaDigital,
                 inscripcion.getDocumentos().stream()
+                        .filter(documento -> !HUELLA_DIGITAL_TIPO.equals(documento.getTipoDocumento()))
                         .map(documento -> documento(documento, inscripcion.getId()))
                         .toList());
     }

@@ -10,10 +10,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.universidad.inscripciones.dto.admin.ArchivoDownload;
 import com.universidad.inscripciones.dto.admin.AnularInscripcionRequest;
@@ -60,6 +62,13 @@ public class InscripcionAdminController {
             @PathVariable Long id,
             @Valid @RequestBody AnularInscripcionRequest request) {
         return inscripcionAdminService.anular(id, request);
+    }
+
+    @PostMapping(value = "/{id}/huella", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public InscripcionAdminDetailResponse registrarHuella(
+            @PathVariable Long id,
+            @RequestParam("archivo") MultipartFile archivo) {
+        return inscripcionAdminService.registrarHuellaDigital(id, archivo);
     }
 
     @GetMapping("/{id}/foto")

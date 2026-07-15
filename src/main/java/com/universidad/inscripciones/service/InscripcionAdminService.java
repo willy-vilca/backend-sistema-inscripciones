@@ -15,6 +15,7 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.universidad.inscripciones.dto.admin.ArchivoDownload;
 import com.universidad.inscripciones.dto.admin.AnularInscripcionRequest;
@@ -24,6 +25,7 @@ import com.universidad.inscripciones.dto.admin.InscripcionAdminResumenResponse;
 import com.universidad.inscripciones.model.entity.DocumentoPostulante;
 import com.universidad.inscripciones.model.entity.Inscripcion;
 import com.universidad.inscripciones.model.entity.PagoBancario;
+import com.universidad.inscripciones.model.enums.DocumentoEstado;
 import com.universidad.inscripciones.model.enums.EstadoInscripcion;
 import com.universidad.inscripciones.repository.DocumentoPostulanteRepository;
 import com.universidad.inscripciones.repository.InscripcionRepository;
@@ -34,8 +36,12 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class InscripcionAdminService {
 
+    private static final String HUELLA_DIGITAL_TIPO = "Huella digital del postulante";
+    private static final String HUELLA_DIGITAL_PREFIX = "huella_digital";
+
     private final InscripcionRepository inscripcionRepository;
     private final DocumentoPostulanteRepository documentoPostulanteRepository;
+    private final FileStorageService fileStorageService;
 
     @Value("${app.upload-dir}")
     private String uploadDir;
@@ -88,6 +94,10 @@ public class InscripcionAdminService {
             throw new IllegalArgumentException("No se puede aprobar una inscripcion anulada.");
         }
 
+        if (!documentoPostulanteRepository.existsByInscripcionIdAndTipoDocumento(id, HUELLA_DIGITAL_TIPO)) {
+            throw new IllegalArgumentException("Primero debes registrar la huella digital del postulante para poder aprobar la inscripcion.");
+        }
+
         inscripcion.setEstado(EstadoInscripcion.APROBADA);
         inscripcion.setObservaciones(null);
         return InscripcionAdminDetailResponse.fromEntity(inscripcion);
@@ -134,6 +144,39 @@ public class InscripcionAdminService {
                 detectarContentType(fotoPath, "image/jpeg"));
     }
 
+    @Transactional
+    public InscripcionAdminDetailResponse registrarHuellaDigital(Long inscripcionId, MultipartFile archivo) {
+        Inscripcion inscripcion = inscripcionRepository.buscarDetalleAdmin(inscripcionId)
+                .orElseThrow(() -> new IllegalArgumentException("Inscripcion no encontrada."));
+
+        if (inscripcion.getEstado() == EstadoInscripcion.ANULADA) {
+            throw new IllegalArgumentException("No se puede registrar huella digital en una inscripcion anulada.");
+        }
+
+        if (documentoPostulanteRepository.existsByInscripcionIdAndTipoDocumento(inscripcionId, HUELLA_DIGITAL_TIPO)) {
+            throw new IllegalArgumentException("La huella digital de esta inscripcion ya fue registrada.");
+        }
+
+        validarArchivoHuella(archivo);
+
+        String folder = "inscripciones/" + inscripcion.getCodigoPostulante();
+        String path = fileStorageService.store(archivo, folder, HUELLA_DIGITAL_PREFIX);
+        DocumentoPostulante huella = DocumentoPostulante.builder()
+                .inscripcion(inscripcion)
+                .tipoDocumento(HUELLA_DIGITAL_TIPO)
+                .nombreOriginal(archivo.getOriginalFilename())
+                .rutaArchivo(path)
+                .contentType(archivo.getContentType())
+                .tamanioBytes(archivo.getSize())
+                .obligatorio(false)
+                .estado(DocumentoEstado.CARGADO)
+                .build();
+
+        documentoPostulanteRepository.save(huella);
+        inscripcion.getDocumentos().add(huella);
+        return InscripcionAdminDetailResponse.fromEntity(inscripcion);
+    }
+
     private EstadoInscripcion obtenerEstadoFiltro(String estado) {
         if (estado == null || estado.isBlank() || "TODOS".equalsIgnoreCase(estado)) {
             return null;
@@ -175,6 +218,24 @@ public class InscripcionAdminService {
                 documento.getRutaArchivo(),
                 documento.getNombreOriginal(),
                 documento.getContentType());
+    }
+
+    private void validarArchivoHuella(MultipartFile archivo) {
+        if (archivo == null || archivo.isEmpty()) {
+            throw new IllegalArgumentException("Debes seleccionar una imagen de la huella digital.");
+        }
+
+        String contentType = archivo.getContentType();
+        if (contentType != null && contentType.toLowerCase().startsWith("image/")) {
+            return;
+        }
+
+        String nombre = archivo.getOriginalFilename() == null ? "" : archivo.getOriginalFilename().toLowerCase();
+        if (nombre.endsWith(".jpg") || nombre.endsWith(".jpeg") || nombre.endsWith(".png") || nombre.endsWith(".webp")) {
+            return;
+        }
+
+        throw new IllegalArgumentException("La huella digital debe ser un archivo de imagen.");
     }
 
     private ArchivoDownload cargarArchivo(String relativePath, String filename, String contentType) {
