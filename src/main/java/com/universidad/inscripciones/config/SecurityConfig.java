@@ -42,7 +42,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(frontendUrl, "http://127.0.0.1:5173"));
+        configuration.setAllowedOrigins(List.of(frontendUrl, "http://127.0.0.1:5173", "https://wonderful-ocean-0e5e2c00f.7.azurestaticapps.net"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
